@@ -1,10 +1,11 @@
 <?php
-// 1. Inclui os arquivos de configuração e banco de dados de forma segura
-// __DIR__ garante que o caminho parte do local do arquivo atual (index.php)
+// 1. Inclui o config.php PRIMEIRO. Ele prepara tudo, inclusive a função ehAdmin().
 require_once(__DIR__ . '/includes/config.php');
+
+// 2. Inclui a conexão com o banco de dados.
 require_once(__DIR__ . '/includes/db.php');
 
-// 2. O header é incluído usando a constante BASE_PATH definida no config.php
+// 3. AGORA, inclui o header, que pode usar com segurança as funções e constantes.
 require_once(BASE_PATH . '/includes/header.php');
 
 // A consulta SQL é segura, pois não utiliza nenhum dado vindo do usuário

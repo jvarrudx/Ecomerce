@@ -1,2 +1,75 @@
-/* Custom styles */ 
-.icon { margin-right: 5px; vertical-align: middle; }
+/* --- Estilos para o Seletor de Tema e Modo Noturno --- */
+
+/* Estilo do botão que troca o tema */
+.theme-switcher {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+.theme-switcher:hover {
+    border-color: #000;
+}
+.theme-switcher .icon-sun {
+    display: none; /* O sol começa escondido */
+}
+
+/* Quando o modo noturno está ATIVO */
+body.dark-mode {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+body.dark-mode .theme-switcher {
+    border-color: #555;
+}
+body.dark-mode .theme-switcher:hover {
+    border-color: #fff;
+}
+body.dark-mode .theme-switcher .icon-moon {
+    display: none; /* Esconde a lua no modo noturno */
+}
+body.dark-mode .theme-switcher .icon-sun {
+    display: block; /* Mostra o sol no modo noturno */
+}
+
+/* Adapta a barra de navegação */
+body.dark-mode .navbar.bg-light {
+    background-color: #1e1e1e !important;
+    border-bottom: 1px solid #333;
+}
+body.dark-mode .navbar .navbar-brand,
+body.dark-mode .navbar .nav-link {
+    color: #e0e0e0 !important;
+}
+body.dark-mode .navbar .nav-link:hover {
+    color: #fff !important;
+}
+body.dark-mode .dropdown-menu {
+    background-color: #1e1e1e;
+    border-color: #333;
+}
+body.dark-mode .dropdown-item {
+    color: #e0e0e0;
+}
+body.dark-mode .dropdown-item:hover {
+    background-color: #333;
+    color: #fff;
+}
+
+
+/* Adapta os cards de produtos */
+body.dark-mode .card {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border-color: #333;
+}
+body.dark-mode .card-title {
+    color: #fff;
+}

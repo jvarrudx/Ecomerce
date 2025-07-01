@@ -1,22 +1,19 @@
 <?php
-// Inicia o buffer de saída para evitar erros de "headers already sent"
+// Inicia o buffer de saída
 ob_start();
 
-// Inicia a sessão aqui para que esteja disponível em todas as páginas
+// Inicia a sessão
 session_start();
 
-// Habilita a exibição de todos os erros (bom para desenvolvimento)
+// Habilita a exibição de erros
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // --- CONFIGURAÇÃO PRINCIPAL ---
-
-// Define a URL base para links, imagens, CSS, etc.
-// Altere se o nome da sua pasta for diferente
 define('BASE_URL', 'http://localhost/TRABALHO PROG2');
-
-// Define o caminho base no servidor para includes e requires em PHP
-// __DIR__ pega o diretório do arquivo atual (includes) e '/..' sobe um nível.
 define('BASE_PATH', dirname(__DIR__));
 
+// --- ESSA LINHA É A CHAVE ---
+// Inclui o arquivo de funções para que elas fiquem disponíveis globalmente
+require_once(BASE_PATH . '/includes/functions.php'); 
 ?>
