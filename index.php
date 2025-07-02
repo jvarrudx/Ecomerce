@@ -8,8 +8,8 @@ require_once(__DIR__ . '/includes/db.php');
 // 3. AGORA, inclui o header.
 require_once(BASE_PATH . '/includes/header.php');
 
-// A consulta SQL com * já busca a nova coluna 'estoque' automaticamente.
-$res = $conn->query("SELECT * FROM produtos ORDER BY nome ASC");
+// Em index.php
+$res = $conn->query("SELECT * FROM produtos WHERE status = 'ativo' ORDER BY nome ASC");
 ?>
 
 <h1 class="mb-4">Produtos</h1>

@@ -1,49 +1,45 @@
 <?php
-// 1. Configuração e Segurança Inicial
 require_once(dirname(__DIR__) . '/includes/config.php');
 require_once(dirname(__DIR__) . '/includes/db.php');
 require_once(BASE_PATH . '/includes/functions.php');
 
-// Verificação de permissão: SÓ PERMITE ACESSO PARA VENDEDORES E ADMINS
+// Acesso permitido apenas para Vendedores e Admins
 if (!ehVendedor()) {
     header('Location: ' . BASE_URL . '/index.php');
     exit;
 }
 
-// --- LÓGICA DE PROCESSAMENTO DOS FORMULÁRIOS ---
-
-// Lógica para DELETAR um produto
+// Lógica para DESATIVAR um produto (o antigo "Excluir")
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_id'])) {
-    $id_para_deletar = intval($_POST['delete_id']);
-    
-    // (Opcional) Futuramente, poderíamos adicionar uma regra aqui para que um vendedor
-    // só possa deletar os próprios produtos. Por enquanto, a lógica está aberta.
-    
-    $stmt_img = $conn->prepare("SELECT imagem FROM produtos WHERE id = ?");
-    $stmt_img->bind_param("i", $id_para_deletar);
-    $stmt_img->execute();
-    $resultado_img = $stmt_img->get_result();
-    if ($produto = $resultado_img->fetch_assoc()) {
-        if (!empty($produto['imagem']) && file_exists(BASE_PATH . '/' . $produto['imagem'])) {
-            unlink(BASE_PATH . '/' . $produto['imagem']);
-        }
-    }
-    $stmt_img->close();
-
-    $stmt = $conn->prepare("DELETE FROM produtos WHERE id = ?");
-    $stmt->bind_param("i", $id_para_deletar);
+    $id_para_desativar = intval($_POST['delete_id']);
+    $stmt = $conn->prepare("UPDATE produtos SET status = 'inativo' WHERE id = ?");
+    $stmt->bind_param("i", $id_para_desativar);
     if ($stmt->execute()) {
-        $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Produto excluído com sucesso!'];
+        $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Produto desativado com sucesso!'];
     } else {
-        $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro ao excluir o produto.'];
+        $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro ao desativar o produto.'];
     }
     $stmt->close();
-    
     header('Location: ' . BASE_URL . '/admin/produtos.php');
     exit;
 }
 
-// Lógica para ADICIONAR um novo produto
+// Lógica para REATIVAR um produto
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['reactivate_id'])) {
+    $id_para_reativar = intval($_POST['reactivate_id']);
+    $stmt = $conn->prepare("UPDATE produtos SET status = 'ativo' WHERE id = ?");
+    $stmt->bind_param("i", $id_para_reativar);
+    if ($stmt->execute()) {
+        $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Produto reativado com sucesso!'];
+    } else {
+        $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro ao reativar o produto.'];
+    }
+    $stmt->close();
+    header('Location: ' . BASE_URL . '/admin/produtos.php');
+    exit;
+}
+
+// LÓGICA PARA ADICIONAR UM NOVO PRODUTO (RESTAURADA)
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_product'])) {
     if (empty($_POST['nome']) || empty($_POST['descricao']) || !isset($_POST['preco']) || !isset($_POST['estoque'])) {
         $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Todos os campos são obrigatórios.'];
@@ -52,10 +48,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_product'])) {
         $descricao = $_POST['descricao'];
         $preco = floatval($_POST['preco']);
         $estoque = intval($_POST['estoque']);
-        $vendedor_id = $_SESSION['usuario_id']; // Associa o produto ao usuário logado
+        $vendedor_id = $_SESSION['usuario_id'];
         $caminho_imagem = '';
 
-        // Lógica de Upload da Imagem...
+        // Lógica de Upload da Imagem
         if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] == 0) {
             $upload_dir = BASE_PATH . '/uploads/';
             $extensao = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
@@ -69,29 +65,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_product'])) {
             }
         }
 
-        $stmt = $conn->prepare("INSERT INTO produtos (nome, descricao, preco, estoque, vendedor_id, imagem) VALUES (?, ?, ?, ?, ?, ?)");
+        // Insere o novo produto com status 'ativo' por padrão
+        $stmt = $conn->prepare("INSERT INTO produtos (nome, descricao, preco, estoque, vendedor_id, status, imagem) VALUES (?, ?, ?, ?, ?, 'ativo', ?)");
         $stmt->bind_param("ssdiis", $nome, $descricao, $preco, $estoque, $vendedor_id, $caminho_imagem);
 
         if ($stmt->execute()) {
             $_SESSION['mensagem'] = ['tipo' => 'success', 'texto' => 'Produto adicionado com sucesso!'];
         } else {
             $_SESSION['mensagem'] = ['tipo' => 'danger', 'texto' => 'Erro ao adicionar o produto.'];
+            if(!empty($caminho_imagem) && file_exists(BASE_PATH . '/' . $caminho_imagem)) {
+                unlink(BASE_PATH . '/' . $caminho_imagem);
+            }
         }
         $stmt->close();
     }
-    
     header('Location: ' . BASE_URL . '/admin/produtos.php');
     exit;
 }
 
-// Inclui o header APÓS toda a lógica de processamento
 require_once(BASE_PATH . '/includes/header.php');
 ?>
 
 <h1>Gerenciar Produtos</h1>
 
 <?php
-// Exibe mensagens de feedback (sucesso, erro)
 if (isset($_SESSION['mensagem'])) {
     echo '<div class="alert alert-' . $_SESSION['mensagem']['tipo'] . '">' . htmlspecialchars($_SESSION['mensagem']['texto']) . '</div>';
     unset($_SESSION['mensagem']);
@@ -121,15 +118,21 @@ if (isset($_SESSION['mensagem'])) {
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead>
-                <tr><th>Imagem</th><th>Produto</th><th>Preço</th><th>Estoque</th><th>Vendedor</th><th class="text-end">Ações</th></tr>
+                <tr>
+                    <th>Imagem</th><th>Produto</th><th>Preço</th><th>Estoque</th><th>Vendedor</th><th>Status</th><th class="text-end">Ações</th>
+                </tr>
             </thead>
             <tbody>
                 <?php
-                $sql = "SELECT p.*, u.nome AS nome_vendedor FROM produtos p LEFT JOIN usuarios u ON p.vendedor_id = u.id ORDER BY p.id DESC";
+                $sql = "SELECT p.*, u.nome AS nome_vendedor 
+                        FROM produtos p 
+                        LEFT JOIN usuarios u ON p.vendedor_id = u.id 
+                        ORDER BY FIELD(p.status, 'ativo', 'inativo'), p.id DESC";
                 $res = $conn->query($sql);
                 while ($p = $res->fetch_assoc()) :
+                    $classe_inativo = ($p['status'] === 'inativo') ? 'produto-inativo' : '';
                 ?>
-                    <tr>
+                    <tr class="<?= $classe_inativo ?>">
                         <td>
                             <?php if(!empty($p['imagem'])): ?><img src="<?= BASE_URL . '/' . htmlspecialchars($p['imagem']) ?>" alt="<?= htmlspecialchars($p['nome']) ?>" width="50"><?php endif; ?>
                         </td>
@@ -137,11 +140,21 @@ if (isset($_SESSION['mensagem'])) {
                         <td>R$ <?= number_format($p['preco'], 2, ',', '.') ?></td>
                         <td><?= $p['estoque'] ?></td>
                         <td><?= htmlspecialchars($p['nome_vendedor'] ?? 'Sistema') ?></td>
+                        <td>
+                            <?php if ($p['status'] === 'ativo'): ?><span class="badge bg-success">Ativo</span><?php else: ?><span class="badge bg-secondary">Inativo</span><?php endif; ?>
+                        </td>
                         <td class="text-end">
-                            <form method="post" action="<?= BASE_URL ?>/admin/produtos.php" onsubmit="return confirm('Tem certeza que deseja excluir este produto?');" style="display: inline;">
-                                <input type="hidden" name="delete_id" value="<?= $p['id'] ?>">
-                                <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
-                            </form>
+                            <?php if ($p['status'] === 'ativo'): ?>
+                                <form method="post" action="<?= BASE_URL ?>/admin/produtos.php" onsubmit="return confirm('Tem certeza que deseja desativar este produto?');" style="display: inline;">
+                                    <input type="hidden" name="delete_id" value="<?= $p['id'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger">Desativar</button>
+                                </form>
+                            <?php else: ?>
+                                <form method="post" action="<?= BASE_URL ?>/admin/produtos.php" style="display: inline;">
+                                    <input type="hidden" name="reactivate_id" value="<?= $p['id'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-info">Reativar</button>
+                                </form>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endwhile; ?>

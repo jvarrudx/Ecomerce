@@ -6,7 +6,7 @@
 /*  Estilos para os Cards de Produto (MODO CLARO - PADRÃO) */
 .product-card { background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 8px; box-shadow: none; transition: all 0.3s ease; overflow: hidden; }
 .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08); }
-.product-card .card-img-top { aspect-ratio: 1 / 1; object-fit: cover; width: 100%; }
+.product-card .card-img-top { aspect-ratio: 1 / 1; object-fit: contain; width: 100%; }
 .product-card .card-body { padding: 1rem; text-align: center; }
 .product-card .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; color: #212529; }
 .product-card .card-text { font-size: 0.875rem; color: #6c757d; margin-bottom: 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -83,6 +83,28 @@ html.dark-mode .login-form .form-control::placeholder {
 .login-form .btn {
     border-radius: 30px;
     padding: 0.75rem;
+}
+
+/* ================================================================== */
+/* --- Estilos para o Painel de Admin --- */
+/* ================================================================== */
+
+/* Deixa a linha do produto inativo com aparência desabilitada */
+tr.produto-inativo {
+    opacity: 0.6;
+    background-color: #f8f9fa; /* Um cinza bem claro */
+}
+tr.produto-inativo td {
+    text-decoration: line-through; /* Tacha o texto */
+}
+
+/* Estilos para o modo noturno */
+html.dark-mode tr.produto-inativo {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #888;
+}
+html.dark-mode tr.produto-inativo td {
+    color: #888;
 }
 
 
