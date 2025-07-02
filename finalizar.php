@@ -1,84 +1,92 @@
 <?php
-// 1. Inclui os arquivos de configuração e banco de dados
 require_once(__DIR__ . '/includes/config.php');
 require_once(__DIR__ . '/includes/db.php');
 
-// 2. Validações Iniciais
-// Se o usuário não estiver logado, redireciona para o login
+// Validações Iniciais
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: ' . BASE_URL . '/login.php');
     exit;
 }
-
-// Se o carrinho estiver vazio, redireciona para a página inicial
 if (empty($_SESSION['carrinho'])) {
     header('Location: ' . BASE_URL . '/index.php');
     exit;
 }
 
-// Inicia uma transação. Ou tudo funciona, ou nada é salvo no banco.
+// Inicia uma transação para garantir a integridade dos dados
 $conn->begin_transaction();
 
+$erro_estoque = null;
+
 try {
-    // 3. Recalcula o total do pedido de forma SEGURA e EFICIENTE
-    $total = 0;
+    // 1. BUSCAR TODOS OS PRODUTOS DO CARRINHO DE UMA VEZ
     $ids_dos_produtos = array_keys($_SESSION['carrinho']);
-    $produtos_db = [];
-
-    // Prepara a consulta para buscar todos os produtos de uma só vez (Evita N+1)
-    $placeholders = implode(',', array_fill(0, count($ids_dos_produtos), '?'));
+    $produtos_no_carrinho = [];
     
-    $stmt_select = $conn->prepare("SELECT id, preco FROM produtos WHERE id IN ($placeholders)");
-    $stmt_select->bind_param(str_repeat('i', count($ids_dos_produtos)), ...$ids_dos_produtos);
-    $stmt_select->execute();
-    $resultado = $stmt_select->get_result();
-    
-    while ($p = $resultado->fetch_assoc()) {
-        $produtos_db[$p['id']] = $p;
-    }
-
-    // Calcula o total com base nos preços atuais do banco de dados
-    foreach ($_SESSION['carrinho'] as $id => $qtd) {
-        // Garante que o produto ainda existe no banco antes de somar
-        if (isset($produtos_db[$id])) {
-            $total += $produtos_db[$id]['preco'] * $qtd;
+    if (!empty($ids_dos_produtos)) {
+        $placeholders = implode(',', array_fill(0, count($ids_dos_produtos), '?'));
+        $stmt_select = $conn->prepare("SELECT id, nome, preco, estoque, vendedor_id FROM produtos WHERE id IN ($placeholders)");
+        $stmt_select->bind_param(str_repeat('i', count($ids_dos_produtos)), ...$ids_dos_produtos);
+        $stmt_select->execute();
+        $resultado = $stmt_select->get_result();
+        while ($produto = $resultado->fetch_assoc()) {
+            $produtos_no_carrinho[$produto['id']] = $produto;
         }
     }
-    $stmt_select->close();
 
-    // 4. Insere o pedido no banco de forma SEGURA com Prepared Statement
-    $stmt_insert = $conn->prepare("INSERT INTO pedidos (usuario_id, total, data_pedido) VALUES (?, ?, NOW())");
-    $stmt_insert->bind_param("id", $_SESSION['usuario_id'], $total); // i=integer, d=double (para valor monetário)
-    
-    // Executa a inserção e verifica se foi bem sucedida
-    if (!$stmt_insert->execute()) {
-        throw new Exception("Falha ao inserir o pedido no banco de dados.");
+    // 2. VERIFICAR O ESTOQUE DE TODOS OS PRODUTOS ANTES DE PROSSEGUIR
+    foreach ($_SESSION['carrinho'] as $id => $qtd) {
+        if (!isset($produtos_no_carrinho[$id]) || $produtos_no_carrinho[$id]['estoque'] < $qtd) {
+            // Se um produto não existe ou não tem estoque, guarda o nome e lança um erro
+            $nome_produto = isset($produtos_no_carrinho[$id]) ? $produtos_no_carrinho[$id]['nome'] : "Produto #$id";
+            throw new Exception("Desculpe, o produto '" . htmlspecialchars($nome_produto) . "' não tem estoque suficiente.");
+        }
     }
-    $stmt_insert->close();
 
-    // 5. Se tudo deu certo até aqui, confirma as operações no banco (torna permanente)
+    // 3. SE TODO O ESTOQUE ESTIVER OK, CALCULA O TOTAL E CRIA O PEDIDO PRINCIPAL
+    $total_final = 0;
+    foreach ($_SESSION['carrinho'] as $id => $qtd) {
+        $total_final += $produtos_no_carrinho[$id]['preco'] * $qtd;
+    }
+
+    $stmt_pedido = $conn->prepare("INSERT INTO pedidos (usuario_id, total, data_pedido) VALUES (?, ?, NOW())");
+    $stmt_pedido->bind_param("id", $_SESSION['usuario_id'], $total_final);
+    $stmt_pedido->execute();
+    $novo_pedido_id = $conn->insert_id; // Pega o ID do pedido que acabamos de criar
+
+    // 4. INSERE CADA ITEM DO CARRINHO NA TABELA 'pedido_itens' E ATUALIZA O ESTOQUE
+    $stmt_item = $conn->prepare("INSERT INTO pedido_itens (pedido_id, produto_id, quantidade, preco_unitario, vendedor_id) VALUES (?, ?, ?, ?, ?)");
+    $stmt_update_estoque = $conn->prepare("UPDATE produtos SET estoque = estoque - ? WHERE id = ?");
+
+    foreach ($_SESSION['carrinho'] as $id => $qtd) {
+        $produto = $produtos_no_carrinho[$id];
+        
+        // Insere o item na tabela pedido_itens
+        $stmt_item->bind_param("iiidi", $novo_pedido_id, $id, $qtd, $produto['preco'], $produto['vendedor_id']);
+        $stmt_item->execute();
+
+        // Diminui o estoque na tabela produtos
+        $stmt_update_estoque->bind_param("ii", $qtd, $id);
+        $stmt_update_estoque->execute();
+    }
+
+    // 5. SE CHEGOU ATÉ AQUI SEM ERROS, CONFIRMA TODAS AS OPERAÇÕES
     $conn->commit();
 
-    // 6. Apenas após confirmar o pedido, limpa o carrinho da sessão
+    // 6. Limpa o carrinho da sessão, pois a compra foi um sucesso
     unset($_SESSION['carrinho']);
 
-    // Define uma mensagem de sucesso para exibir na página
     $mensagem = "Obrigado pela sua compra. Seu pedido foi registrado com sucesso!";
     $tipo_mensagem = "success";
 
 } catch (Exception $e) {
-    // 7. Se qualquer passo falhar, desfaz TODAS as operações no banco feitas dentro da transação
+    // 7. SE OCORREU QUALQUER ERRO, DESFAZ TODAS AS OPERAÇÕES NO BANCO
     $conn->rollback();
     
-    // Define uma mensagem de erro para o usuário
-    $mensagem = "Ocorreu um erro ao processar seu pedido. Por favor, tente novamente mais tarde.";
+    // Define a mensagem de erro para o usuário
+    $mensagem = $e->getMessage(); // Mostra a mensagem de erro específica (ex: falta de estoque)
     $tipo_mensagem = "danger";
-    
-    // Opcional: registrar o erro real em um log de sistema para o desenvolvedor
-    // error_log('Erro ao finalizar pedido: ' . $e->getMessage());
 }
 
-// 8. Inclui o header APÓS toda a lógica
 require_once(BASE_PATH . '/includes/header.php');
 ?>
 
@@ -89,7 +97,7 @@ require_once(BASE_PATH . '/includes/header.php');
 </div>
 
 <?php if ($tipo_mensagem === 'success'): ?>
-    <p><b>Total do Pedido:</b> R$ <?= number_format($total, 2, ',', '.') ?></p>
+    <p><b>Total do Pedido:</b> R$ <?= number_format($total_final, 2, ',', '.') ?></p>
 <?php endif; ?>
 
 <a href="<?= BASE_URL ?>/index.php" class="btn btn-primary">Voltar à Loja</a>

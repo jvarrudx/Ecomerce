@@ -1,11 +1,9 @@
-
 <?php
 // 1. Inclui o config.php, que inicia a sessão e define as constantes de caminho
 require_once(__DIR__ . '/includes/config.php');
 require_once(__DIR__ . '/includes/db.php');
 
 // 2. Lógica para REMOVER um item do carrinho
-// Validação do ID e uso de BASE_URL para o redirecionamento
 if (isset($_GET['del']) && filter_var($_GET['del'], FILTER_VALIDATE_INT)) {
     $id_para_remover = intval($_GET['del']);
     unset($_SESSION['carrinho'][$id_para_remover]);
@@ -14,7 +12,6 @@ if (isset($_GET['del']) && filter_var($_GET['del'], FILTER_VALIDATE_INT)) {
 }
 
 // 3. Lógica para ADICIONAR um item ao carrinho
-// Validação do ID e uso de BASE_URL para o redirecionamento
 if (isset($_GET['add']) && filter_var($_GET['add'], FILTER_VALIDATE_INT)) {
     $id_para_adicionar = intval($_GET['add']);
     $_SESSION['carrinho'][$id_para_adicionar] = ($_SESSION['carrinho'][$id_para_adicionar] ?? 0) + 1;
@@ -32,7 +29,7 @@ require_once(BASE_PATH . '/includes/header.php');
     <div class="alert alert-info">Seu carrinho está vazio.</div>
 <?php else : ?>
     <?php
-    // O seu código de otimização já está excelente, mantivemos ele intacto.
+    // Código de otimização para buscar produtos (permanece igual)
     $ids_dos_produtos = array_keys($_SESSION['carrinho']);
     $produtos = [];
 
@@ -48,44 +45,50 @@ require_once(BASE_PATH . '/includes/header.php');
         $stmt->close();
     }
     ?>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Produto</th>
-                <th>Quantidade</th>
-                <th>Subtotal</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-            $total = 0;
-            foreach ($_SESSION['carrinho'] as $id => $qtd) :
-                if (isset($produtos[$id])) :
-                    $prod = $produtos[$id];
-                    $subtotal = $prod['preco'] * $qtd;
-                    $total += $subtotal;
-            ?>
+
+    <div class="card bg-light">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead>
                     <tr>
-                        <td><?= htmlspecialchars($prod['nome']) ?></td>
-                        <td><?= $qtd ?></td>
-                        <td>R$ <?= number_format($subtotal, 2, ',', '.') ?></td>
-                        <td><a href="<?= BASE_URL ?>/carrinho.php?del=<?= $id ?>" class="btn btn-sm btn-danger">Remover</a></td>
+                        <th>Produto</th>
+                        <th>Quantidade</th>
+                        <th>Subtotal</th>
+                        <th class="text-end">Ação</th>
                     </tr>
-            <?php
-                endif;
-            endforeach;
-            ?>
-        </tbody>
-    </table>
-    <div class="d-flex justify-content-between align-items-center">
-        <h4>Total: R$ <?= number_format($total, 2, ',', '.') ?></h4>
-        <a href="<?= BASE_URL ?>/finalizar.php" class="btn btn-primary">Finalizar Pedido</a>
+                </thead>
+                <tbody>
+                    <?php
+                    $total = 0;
+                    foreach ($_SESSION['carrinho'] as $id => $qtd) :
+                        if (isset($produtos[$id])) :
+                            $prod = $produtos[$id];
+                            $subtotal = $prod['preco'] * $qtd;
+                            $total += $subtotal;
+                    ?>
+                            <tr>
+                                <td><?= htmlspecialchars($prod['nome']) ?></td>
+                                <td><?= $qtd ?></td>
+                                <td>R$ <?= number_format($subtotal, 2, ',', '.') ?></td>
+                                <td class="text-end">
+                                    <a href="<?= BASE_URL ?>/carrinho.php?del=<?= $id ?>" class="btn btn-sm btn-danger">Remover</a>
+                                </td>
+                            </tr>
+                    <?php
+                        endif;
+                    endforeach;
+                    ?>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <h4>Total: R$ <?= number_format($total, 2, ',', '.') ?></h4>
+            <a href="<?= BASE_URL ?>/finalizar.php" class="btn btn-primary">Finalizar Pedido</a>
+        </div>
     </div>
 <?php endif; ?>
 
 <?php
-// 7. Inclui o footer usando o caminho absoluto
+// Inclui o footer usando o caminho absoluto
 require_once(BASE_PATH . '/includes/footer.php');
 ?>
-```

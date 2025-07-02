@@ -1,8 +1,10 @@
 <?php
+// A verificação de sessão e o require_once do config são feitos na página principal
+// (ex: index.php) ANTES de incluir este header.
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-// Incluindo o config.php para ter acesso ao BASE_URL
+// Incluindo o config.php para ter acesso ao BASE_URL e às funções
 require_once(__DIR__ . '/config.php');
 ?>
 <!DOCTYPE html>
@@ -28,24 +30,35 @@ require_once(__DIR__ . '/config.php');
 <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
   <div class="container">
     <a class="navbar-brand" href="<?= BASE_URL ?>/index.php">
-      <img src="https://cdn-icons-png.flaticon.com/512/25/25694.png" alt="Home" width="30">
-      Inicio
+        <i class="fas fa-home fa-lg"></i>
+        <span>Inicio</span>
     </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
     <div class="collapse navbar-collapse" id="navMenu">
       <ul class="navbar-nav ms-auto align-items-center">
         <?php if(isset($_SESSION['usuario_id'])): ?>
           <li class="nav-item">
             <a class="nav-link" href="<?= BASE_URL ?>/carrinho.php">Carrinho</a>
           </li>
-          <?php if(ehAdmin()): ?>
+
+          <li class="nav-item">
+            <a class="nav-link" href="<?= BASE_URL ?>/pedidos.php">Meus Pedidos</a>
+          </li>
+
+          <?php if(ehVendedor()): ?>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Admin</a>
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+              Gerenciar
+            </a>
             <ul class="dropdown-menu">
               <li><a class="dropdown-item" href="<?= BASE_URL ?>/admin/produtos.php">Gerenciar Produtos</a></li>
               <li><a class="dropdown-item" href="<?= BASE_URL ?>/admin/usuarios.php">Gerenciar Usuários</a></li>
             </ul>
           </li>
           <?php endif; ?>
+
           <li class="nav-item">
             <a class="nav-link" href="<?= BASE_URL ?>/logout.php">Sair</a>
           </li>

@@ -21,18 +21,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['usuario_tipo'] = $user['tipo'];
             $_SESSION['usuario_nome'] = $user['nome'];
 
-            // --- LÓGICA DE REDIRECIONAMENTO ---
-            // Verifica se existe uma URL de redirecionamento no POST
             if (!empty($_POST['redirect_url'])) {
-                // Se sim, redireciona para a URL de onde o usuário veio
                 header('Location: ' . $_POST['redirect_url']);
             } else {
-                // Se não, redireciona para a página inicial (comportamento padrão)
                 header('Location: ' . BASE_URL . '/index.php');
             }
             exit;
-            // --- FIM DA LÓGICA ---
-
         } else {
             $erro = 'E-mail ou senha inválidos.';
         }
@@ -42,26 +36,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 require_once(BASE_PATH . '/includes/header.php');
 ?>
 
-<h1>Login</h1>
+<div class="row justify-content-center">
+    <div class="col-md-6">
 
-<?php if (!empty($erro)): ?>
-    <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
-<?php endif; ?>
+        <h1 class="text-center mb-4">Login</h1>
 
-<form method="post" action="<?= BASE_URL ?>/login.php<?= isset($_GET['redirect_url']) ? '?redirect_url=' . htmlspecialchars($_GET['redirect_url']) : '' ?>">
-  <?php if(isset($_GET['redirect_url'])): ?>
-    <input type="hidden" name="redirect_url" value="<?= htmlspecialchars($_GET['redirect_url']) ?>">
-  <?php endif; ?>
+        <?php if (!empty($erro)): ?>
+            <div class="alert alert-danger"><?= htmlspecialchars($erro) ?></div>
+        <?php endif; ?>
 
-  <div class="mb-3">
-    <label for="email" class="form-label">E-mail</label>
-    <input type="email" name="email" id="email" class="form-control" required>
-  </div>
-  <div class="mb-3">
-    <label for="senha" class="form-label">Senha</label>
-    <input type="password" name="senha" id="senha" class="form-control" required>
-  </div>
-  <button class="btn btn-primary" type="submit">Entrar</button>
-</form>
+        <form class="login-form" method="post" action="<?= BASE_URL ?>/login.php<?= isset($_GET['redirect_url']) ? '?redirect_url=' . htmlspecialchars($_GET['redirect_url']) : '' ?>">
+            <?php if(isset($_GET['redirect_url'])): ?>
+                <input type="hidden" name="redirect_url" value="<?= htmlspecialchars($_GET['redirect_url']) ?>">
+            <?php endif; ?>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">E-mail</label>
+                <input type="email" name="email" id="email" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="senha" class="form-label">Senha</label>
+                <input type="password" name="senha" id="senha" class="form-control" required>
+            </div>
+            <div class="d-grid mt-4">
+                <button class="btn btn-primary" type="submit">Entrar</button>
+            </div>
+        </form>
+
+    </div>
+</div>
 
 <?php require_once(BASE_PATH . '/includes/footer.php'); ?>
