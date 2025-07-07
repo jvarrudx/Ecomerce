@@ -1,6 +1,6 @@
 
 ## 👤 Autores
-- Nome: Roberto Henrique Duarte, João Victor Costa Arruda
+- Nome: Roberto Henrique Duarte, João Victor Costa Arruda, Gabriel Takatsuka Farche
 
 # 🛒 Ecomerce - Loja Virtual em PHP
 
