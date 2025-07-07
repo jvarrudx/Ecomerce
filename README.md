@@ -103,14 +103,6 @@ http://localhost/Ecomerce/CriarAdmin.php
 
 - Certifique-se de que as permissões de escrita/leitura estejam corretas se o sistema estiver sendo executado em ambiente Linux.
 
-## 🧪 Sugestões de Melhorias Futuras
-
-- Implementar sistema de recuperação de senha
-- Adicionar autenticação baseada em sessões de forma mais robusta
-- Separar camadas de apresentação e lógica (MVC)
-- Implementar painel administrativo para gerenciar produtos e pedidos
-- Responsividade com CSS moderno (Bootstrap 5 ou Tailwind)
-- Proteção contra SQL Injection com uso de PDO ou MySQLi com prepared statements
 
 
 
